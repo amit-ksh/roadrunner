@@ -227,7 +227,7 @@ function init() {
 function draw() {
   if (gameOver) {
     explodeSound.play();
-    sound.stop();
+    sound.pause();
     return;
   }
 
@@ -259,11 +259,13 @@ function adjustVertices(offset) {
 
 // Game Update Function
 function update() {
-  if (car.position.x > 2 && zOrientation < 0) {
-    car.position.x += zOrientation;
+  // LEFT
+  if (zOrientation > 0) {
+    car.position.x = Math.max(-2, car.position.x - Math.abs(zOrientation));
   }
-  if (car.position.x < -2 && zOrientation > 0) {
-    car.position.x += zOrientation;
+  // RIGHT
+  if (zOrientation < 0) {
+    car.position.x = Math.min(2, car.position.x + Math.abs(zOrientation));
   }
 
   for (let i = 0; i < cubes.length; i++) {
