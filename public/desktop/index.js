@@ -26,7 +26,7 @@ let gameStarted = false;
 let gameOver = false;
 let zOrientation = 0;
 let sound;
-var loadingEl, connectMessage, audioBtn;
+var loadingEl, connectMessage, audioBtn, gameOverModal;
 const modelLoaded = {
   car: false,
   barricade: false,
@@ -228,6 +228,8 @@ function draw() {
   if (gameOver) {
     explodeSound.play();
     sound.pause();
+    gameOverModal.querySelector("score").innerHTML = score;
+    gameOverModal.classList.remove("fade-out");
     return;
   }
 
@@ -343,6 +345,7 @@ window.onload = () => {
     explodeSound = document.getElementById("explode_sound");
     loadingEl = document.querySelector(".loader");
     audioBtn = document.querySelector("button.audio");
+    gameOverModal = document.querySelector(".game-over-container");
 
     audioBtn.addEventListener("click", () => {
       if (sound.paused) {
