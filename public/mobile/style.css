@@ -55,3 +55,12 @@ main button {
   font-family: "Teko";
   font-size: 1.5em;
 }
+
+h4 {
+  margin: 0;
+}
+
+li {
+  font-size: 1.25rem;
+  text-align: left;
+}

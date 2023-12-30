@@ -215,11 +215,15 @@ button.audio.playing {
   margin: 1rem 0;
 }
 
-.credits li {
+li {
   font-size: 1.25rem;
   text-align: left;
 }
 
 .credits li a {
   color: white;
+}
+
+h4 {
+  margin: 0;
 }
