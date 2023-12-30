@@ -288,7 +288,7 @@ function update() {
     }
   }
 
-  if (Math.random() < 0.03 && barricades.length < 6) {
+  if (Math.random() < 0.03 && barricades.length < 6 && !gameOver) {
     makeRandomCube();
   }
 
@@ -417,6 +417,9 @@ function reset() {
     }
   }
   barricades = [];
+
+  renderer.render(scene, camera);
+  car.position.x = 0;
 
   gameOverModal.querySelector(".score").innerHTML = 0;
   gameOverModal.classList.add("fade-out");
