@@ -22,10 +22,15 @@ window.onload = function () {
     button.addEventListener("click", startGame);
 
     function startGame() {
-      socket.emit("mobile connected");
-      socket.on("start", () => (ready = true));
-      button.removeEventListener("touchstart", startGame);
+      socket.emit("start");
+      ready = true;
       button.innerHTML = "Playing!";
     }
   }
+
+  // On gameover, reset
+  socket.on("mobile gameover", () => {
+    button.innerHTML = "Restart";
+    ready = false;
+  });
 };

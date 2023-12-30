@@ -1,12 +1,13 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-var container;
-var cubes = [];
-var crash = false;
-var score = 0;
-var scoreText = document.getElementById("score");
-var id = 0;
+let socket;
+let container;
+let barricades = [];
+let crash = false;
+let score = 0;
+let scoreText = document.getElementById("score");
+let id = 0;
 let counter = 3;
 
 let scene,
@@ -129,7 +130,7 @@ function setupCarModel() {
     // called when loading has errors
     function (error) {
       alert("An error occured while loading Car model! Refresh!");
-    }
+    },
   );
 }
 
@@ -155,17 +156,16 @@ function setupBarricadeModel() {
     // called while loading is progressing
     function (xhr) {
       if (!loadingEl) return;
-      loadingEl.querySelector(
-        "#barricade"
-      ).innerHTML = `Loading barricade model: <span>${(
-        (xhr.loaded / xhr.total) *
-        100
-      ).toFixed(2)}%</span>`;
+      loadingEl.querySelector("#barricade").innerHTML =
+        `Loading barricade model: <span>${(
+          (xhr.loaded / xhr.total) *
+          100
+        ).toFixed(2)}%</span>`;
     },
     // called when loading has errors
     function (error) {
       alert("An error occured while loading Barricade model! Refresh!");
-    }
+    },
   );
 }
 
@@ -191,7 +191,7 @@ function setupPlane() {
   });
   const wireframe = new THREE.LineSegments(
     wireframeGeometry,
-    wireframeMaterial
+    wireframeMaterial,
   );
 
   plane.add(wireframe);
@@ -226,10 +226,17 @@ function init() {
 
 function draw() {
   if (gameOver) {
-    explodeSound.play();
-    sound.pause();
-    gameOverModal.querySelector("score").innerHTML = score;
+    try {
+      explodeSound.play();
+      sound.pause();
+    } catch (e) {
+      console.error("Error: Playing the sound" + e);
+    }
+
+    gameOverModal.querySelector(".score").innerHTML = score;
     gameOverModal.classList.remove("fade-out");
+
+    socket.emit("gameover");
     return;
   }
 
@@ -270,8 +277,8 @@ function update() {
     car.position.x = Math.min(2, car.position.x + Math.abs(zOrientation));
   }
 
-  for (let i = 0; i < cubes.length; i++) {
-    const collision = car.position.distanceTo(cubes[i].position) < 0.35;
+  for (let i = 0; i < barricades.length; i++) {
+    const collision = car.position.distanceTo(barricades[i].position) < 0.35;
 
     if (collision) {
       crash = true;
@@ -281,22 +288,22 @@ function update() {
     }
   }
 
-  if (Math.random() < 0.03 && cubes.length < 6) {
+  if (Math.random() < 0.03 && barricades.length < 6) {
     makeRandomCube();
   }
 
-  for (let i = 0; i < cubes.length; i++) {
-    if (cubes[i].position.y < -20) {
-      scene.remove(cubes[i]);
-      cubes.splice(i, 1);
+  for (let i = 0; i < barricades.length; i++) {
+    if (barricades[i].position.y < -20) {
+      scene.remove(barricades[i]);
+      barricades.splice(i, 1);
       if (!crash) {
         score += 1;
       }
     } else {
-      cubes[i].position.y -= 0.05;
+      barricades[i].position.y -= 0.05;
     }
   }
-  scoreText.innerText = "Score:" + Math.floor(score);
+  scoreText.innerText = "Score: " + Math.floor(score);
 }
 
 function getRandomArbitrary(min, max) {
@@ -309,10 +316,10 @@ function makeRandomCube() {
   newBarricade.position.set(
     getRandomArbitrary(-2, 2),
     getRandomArbitrary(50, 0),
-    0
+    0,
   );
 
-  cubes.push(newBarricade);
+  barricades.push(newBarricade);
   newBarricade.name = "box_" + id;
   id++;
 
@@ -320,7 +327,10 @@ function makeRandomCube() {
 }
 
 function displayCounter() {
-  const counterDiv = document.getElementsByClassName("counter")[0];
+  const counterDiv = document.querySelector(".counter");
+  if (counterDiv.classList.contains("fade-out")) {
+    counterDiv.classList.remove("fade-out");
+  }
   counterDiv.innerHTML = counter;
   if (counter > 0) {
     counter--;
@@ -338,9 +348,8 @@ window.onload = () => {
   if (!navigator.userAgentData.mobile) {
     let previousValue;
     connectMessage = document.getElementById("connect");
-    connectMessage.querySelector(
-      "p strong"
-    ).innerHTML = `${window.origin}/mobile`;
+    connectMessage.querySelector("p strong").innerHTML =
+      `${window.origin}/mobile`;
 
     explodeSound = document.getElementById("explode_sound");
     loadingEl = document.querySelector(".loader");
@@ -357,9 +366,14 @@ window.onload = () => {
       }
     });
 
-    const socket = io();
+    socket = io();
 
-    socket.on("mobile orientation", function (e) {
+    socket.on("start game", () => {
+      if (!gameOver) return;
+      reset();
+    });
+
+    socket.on("mobile orientation", (e) => {
       if (!bluetoothConnected) {
         bluetoothConnected = true;
         connectMessage.classList.add("fade-out");
@@ -379,3 +393,33 @@ window.onload = () => {
     });
   }
 };
+
+function reset() {
+  crash = false;
+  score = 0;
+  id = 0;
+  counter = 3;
+
+  gameStarted = false;
+  gameOver = false;
+  zOrientation = 0;
+
+  for (let i = 0; i < barricades.length; i++) {
+    scene.remove(barricades[i]);
+    barricades.pop();
+  }
+  barricades.length = 0;
+
+  for (let i = 0; i < scene.children.length; i++) {
+    const obj = scene.children[i];
+    if (/box_/i.test(obj?.name)) {
+      scene.remove(obj);
+    }
+  }
+  barricades = [];
+
+  gameOverModal.querySelector(".score").innerHTML = 0;
+  gameOverModal.classList.add("fade-out");
+
+  bluetoothConnected = false;
+}
